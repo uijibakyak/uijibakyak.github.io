@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monolith 시계</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&display=swap">
+<style>
+  html[data-theme="dark"] {
+    --bg: #0B0B0B;
+    --fg: #F7F6F2;
+    --sub: #787774;
+    --dim: #8F8E8B;
+    --line: #2B2B29;
+    --panel: #141413;
+    --on-bg: #F7F6F2;
+    --on-fg: #0B0B0B;
+    --off-bg: #1E1E1C;
+    --off-fg: #C9C8C4;
+  }
+  html[data-theme="light"] {
+    --bg: #FAFAF8;
+    --fg: #111110;
+    --sub: #7B7975;
+    --dim: #5C5A55;
+    --line: #DCD8D0;
+    --panel: #FFFFFF;
+    --on-bg: #111110;
+    --on-fg: #FAFAF8;
+    --off-bg: #F1EFEA;
+    --off-fg: #333230;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    font-family: 'Archivo', 'Helvetica Neue', Helvetica, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--fg); }
+  a:hover { color: #A9A8A4; }
+
+  .stage {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: clamp(24px, 7vw, 96px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(24px, 4vw, 44px);
+  }
+
+  .gear {
+    position: absolute;
+    top: clamp(16px, 3vw, 40px);
+    right: clamp(16px, 3vw, 40px);
+    z-index: 6;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    appearance: none;
+    -webkit-appearance: none;
+    border-radius: 2px;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--dim);
+  }
+  .gear[aria-expanded="true"] {
+    border-color: var(--on-bg);
+    background: var(--on-bg);
+    color: var(--on-fg);
+  }
+
+  .panel {
+    position: absolute;
+    top: clamp(72px, 9vw, 96px);
+    right: clamp(16px, 3vw, 40px);
+    z-index: 5;
+    width: 272px;
+    max-width: calc(100vw - 32px);
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    padding: 22px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+  }
+  .panel[hidden] { display: none; }
+
+  .group { display: flex; flex-direction: column; gap: 12px; }
+
+  .group-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.24em;
+    text-indent: 0.24em;
+    color: var(--dim);
+  }
+
+  .row { display: flex; gap: 8px; }
+  .col { display: flex; flex-direction: column; gap: 8px; }
+
+  .chip {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 44px;
+    padding: 0 14px;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+    border-radius: 2px;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: var(--off-bg);
+    color: var(--off-fg);
+  }
+  .row .chip { flex-grow: 1; width: auto; text-align: center; }
+  .chip[aria-pressed="true"] {
+    border-color: var(--on-bg);
+    background: var(--on-bg);
+    color: var(--on-fg);
+  }
+
+  .field {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 44px;
+    padding: 0 14px;
+    width: 100%;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    border-radius: 2px;
+    border: 1px solid var(--line);
+    background: var(--off-bg);
+    color: var(--fg);
+  }
+  .field::placeholder { color: var(--dim); }
+  .field:focus-visible {
+    outline: 1px solid var(--on-bg);
+    outline-offset: 1px;
+  }
+
+  .pledge {
+    max-width: min(640px, calc(100vw - 48px));
+    margin: 0;
+    text-align: center;
+    font-size: clamp(18px, 2.6vw, 32px);
+    font-weight: 400;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    color: var(--fg);
+  }
+  .pledge[hidden] { display: none; }
+
+  .head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(14px, 2vw, 22px);
+  }
+
+  .date {
+    font-size: clamp(11px, 1.6vw, 13px);
+    font-weight: 500;
+    letter-spacing: 0.46em;
+    text-indent: 0.46em;
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rule { width: 56px; height: 1px; background: var(--line); }
+
+  .readout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(16px, 2.6vw, 28px);
+  }
+
+  .clock {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .time {
+    font-size: clamp(56px, 12vw, 156px);
+    line-height: 0.84;
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  .ms {
+    font-size: clamp(24px, 5vw, 64px);
+    line-height: 0.84;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--sub);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+  .ms[hidden] { display: none; }
+</style>
+</head>
+<body>
+  <main class="stage">
+    <button type="button" id="gear" class="gear" aria-label="설정" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4.2"></circle>
+        <path d="M12 6 V 3.5"></path>
+        <path d="M12 18 V 20.5"></path>
+        <path d="M6 12 H 3.5"></path>
+        <path d="M18 12 H 20.5"></path>
+        <path d="M16.24 7.76 L 18.01 5.99"></path>
+        <path d="M7.76 16.24 L 5.99 18.01"></path>
+        <path d="M7.76 7.76 L 5.99 5.99"></path>
+        <path d="M16.24 16.24 L 18.01 18.01"></path>
+      </svg>
+    </button>
+
+    <div class="panel" id="panel" hidden>
+      <div class="group">
+        <div class="group-label" id="theme-label">테마</div>
+        <div class="row" role="group" aria-labelledby="theme-label">
+          <button type="button" class="chip" data-theme-set="dark" aria-pressed="true">다크</button>
+          <button type="button" class="chip" data-theme-set="light" aria-pressed="false">화이트</button>
+        </div>
+      </div>
+      <div class="group">
+        <div class="group-label" id="format-label">표시 형식</div>
+        <div class="col" role="group" aria-labelledby="format-label">
+          <button type="button" class="chip" data-format-set="full" aria-pressed="true">HH:mm:ss.SSS</button>
+          <button type="button" class="chip" data-format-set="seconds" aria-pressed="false">HH:mm:ss</button>
+          <button type="button" class="chip" data-format-set="minutes" aria-pressed="false">HH:mm</button>
+        </div>
+      </div>
+      <div class="group">
+        <label class="group-label" for="pledge-input">다짐</label>
+        <input class="field" type="text" id="pledge-input" maxlength="60"
+               placeholder="다짐을 입력해주세요." autocomplete="off" spellcheck="false">
+        <div class="row" role="group" aria-label="다짐 표시 여부">
+          <button type="button" class="chip" data-pledge-set="show" aria-pressed="true">표시</button>
+          <button type="button" class="chip" data-pledge-set="hide" aria-pressed="false">숨기기</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="head">
+      <div class="date" id="date"></div>
+      <div class="rule"></div>
+    </div>
+
+    <div class="readout">
+      <div class="clock">
+        <div class="time" id="time"></div>
+        <div class="ms" id="ms" hidden></div>
+      </div>
+
+      <p class="pledge" id="pledge" hidden></p>
+    </div>
+  </main>
+
+<script>
+(function () {
+  'use strict';
+
+  var STORAGE_KEY = 'monolith-clock.settings.v1';
+
+  var el = {
+    root: document.documentElement,
+    gear: document.getElementById('gear'),
+    panel: document.getElementById('panel'),
+    date: document.getElementById('date'),
+    time: document.getElementById('time'),
+    ms: document.getElementById('ms'),
+    pledgeInput: document.getElementById('pledge-input'),
+    pledge: document.getElementById('pledge')
+  };
+
+  var PLEDGE_MAX = 60;
+
+  var state = {
+    theme: 'dark',
+    format: 'full',
+    open: false,
+    pledge: '',
+    pledgeShown: true
+  };
+
+  function loadSettings() {
+    try {
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      var saved = JSON.parse(raw);
+      if (!saved || typeof saved !== 'object') return;
+      if (saved.theme === 'dark' || saved.theme === 'light') state.theme = saved.theme;
+      if (saved.format === 'full' || saved.format === 'seconds' || saved.format === 'minutes') {
+        state.format = saved.format;
+      }
+      if (typeof saved.pledge === 'string') state.pledge = saved.pledge.slice(0, PLEDGE_MAX);
+      if (typeof saved.pledgeShown === 'boolean') state.pledgeShown = saved.pledgeShown;
+    } catch (e) {
+      /* 시크릿 모드나 사이트 데이터 차단: 시계는 동작하고 선택만 기억되지 않는다 */
+    }
+  }
+
+  function saveSettings() {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        theme: state.theme,
+        format: state.format,
+        pledge: state.pledge,
+        pledgeShown: state.pledgeShown
+      }));
+    } catch (e) {
+      /* 위와 같음 */
+    }
+  }
+
+  function syncChrome() {
+    el.root.setAttribute('data-theme', state.theme);
+    el.gear.setAttribute('aria-expanded', state.open ? 'true' : 'false');
+    el.panel.hidden = !state.open;
+    el.ms.hidden = state.format !== 'full';
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-theme-set]'), function (b) {
+      b.setAttribute('aria-pressed', b.dataset.themeSet === state.theme ? 'true' : 'false');
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-format-set]'), function (b) {
+      b.setAttribute('aria-pressed', b.dataset.formatSet === state.format ? 'true' : 'false');
+    });
+
+    var wanted = state.pledgeShown ? 'show' : 'hide';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-pledge-set]'), function (b) {
+      b.setAttribute('aria-pressed', b.dataset.pledgeSet === wanted ? 'true' : 'false');
+    });
+
+    // 입력 중 커서가 튀지 않도록 값이 실제로 다를 때만 되쓴다
+    if (el.pledgeInput.value !== state.pledge) el.pledgeInput.value = state.pledge;
+
+    var text = state.pledge.trim();
+    var visible = state.pledgeShown && text !== '';
+    el.pledge.hidden = !visible;
+    if (visible) el.pledge.textContent = text;
+  }
+
+  function pad(n, w) {
+    return String(n).padStart(w, '0');
+  }
+
+  function tick() {
+    var d = new Date();
+    var hh = pad(d.getHours(), 2);
+    var mm = pad(d.getMinutes(), 2);
+    var ss = pad(d.getSeconds(), 2);
+
+    var date = d.getFullYear() + '-' + pad(d.getMonth() + 1, 2) + '-' + pad(d.getDate(), 2);
+    var time = state.format === 'minutes' ? hh + ':' + mm : hh + ':' + mm + ':' + ss;
+
+    if (el.date.textContent !== date) el.date.textContent = date;
+    if (el.time.textContent !== time) el.time.textContent = time;
+    if (state.format === 'full') el.ms.textContent = '.' + pad(d.getMilliseconds(), 3);
+
+    window.requestAnimationFrame(tick);
+  }
+
+  el.gear.addEventListener('click', function () {
+    state.open = !state.open;
+    syncChrome();
+  });
+
+  el.panel.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-theme-set], [data-format-set], [data-pledge-set]');
+    if (!button) return;
+    if (button.dataset.themeSet) state.theme = button.dataset.themeSet;
+    if (button.dataset.formatSet) state.format = button.dataset.formatSet;
+    if (button.dataset.pledgeSet) state.pledgeShown = button.dataset.pledgeSet === 'show';
+    saveSettings();
+    syncChrome();
+  });
+
+  el.pledgeInput.addEventListener('input', function () {
+    state.pledge = el.pledgeInput.value.slice(0, PLEDGE_MAX);
+    saveSettings();
+    syncChrome();
+  });
+
+  loadSettings();
+  syncChrome();
+  window.requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

@@ -1,118 +1,161 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>의지박약 | uijibakyak</title>
-  <style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>의지박약</title>
+<meta name="description" content="uijibakyak에서 만든 것들의 목차">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #FAFAF8;
+    --fg: #111110;
+    --sub: #7B7975;
+    --dim: #5C5A55;
+    --line: #DCD8D0;
+    --card: #FFFFFF;
+  }
+  @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #ffffff;
-      --fg: #1a1a1a;
-      --muted: #666666;
-      --border: #e5e5e5;
-      --accent: #2563eb;
+      --bg: #0B0B0B;
+      --fg: #F7F6F2;
+      --sub: #787774;
+      --dim: #8F8E8B;
+      --line: #2B2B29;
+      --card: #141413;
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #16181c;
-        --fg: #e8e8e8;
-        --muted: #9a9a9a;
-        --border: #2c2f35;
-        --accent: #7aa2f7;
-      }
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--fg);
-      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
-                   "Pretendard", "Noto Sans KR", sans-serif;
-      line-height: 1.7;
-      -webkit-font-smoothing: antialiased;
-    }
-    .wrap {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 0 16px;
-    }
-    header {
-      border-bottom: 1px solid var(--border);
-      padding: 48px 0 24px;
-    }
-    header h1 {
-      margin: 0 0 8px;
-      font-size: 32px;
-      letter-spacing: -0.02em;
-    }
-    header p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 15px;
-    }
-    nav {
-      margin-top: 20px;
-      display: flex;
-      gap: 16px;
-      font-size: 14px;
-    }
-    nav a { color: var(--accent); text-decoration: none; }
-    nav a:hover { text-decoration: underline; }
-    main { padding: 32px 0 64px; }
-    article {
-      padding: 20px 0;
-      border-bottom: 1px solid var(--border);
-    }
-    article:last-child { border-bottom: none; }
-    article h2 {
-      margin: 0 0 6px;
-      font-size: 20px;
-    }
-    article h2 a { color: var(--fg); text-decoration: none; }
-    article h2 a:hover { color: var(--accent); }
-    time {
-      display: block;
-      color: var(--muted);
-      font-size: 13px;
-      margin-bottom: 8px;
-    }
-    article p { margin: 0; color: var(--muted); font-size: 15px; }
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 24px 0 48px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-  </style>
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Archivo', -apple-system, BlinkMacSystemFont,
+                 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: clamp(48px, 12vw, 120px) clamp(20px, 5vw, 32px);
+  }
+
+  header { margin-bottom: clamp(40px, 8vw, 72px); }
+
+  h1 {
+    margin: 0 0 14px;
+    font-size: clamp(28px, 6vw, 40px);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+
+  .tagline {
+    margin: 0;
+    font-size: 15px;
+    color: var(--sub);
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.24em;
+    text-indent: 0.24em;
+    color: var(--dim);
+    margin-bottom: 18px;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .entry {
+    display: block;
+    padding: 22px 24px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .entry:hover { border-color: var(--fg); }
+  .entry:focus-visible {
+    outline: 2px solid var(--fg);
+    outline-offset: 2px;
+  }
+
+  .entry-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .entry-name {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .entry-meta {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .entry-desc {
+    margin: 6px 0 0;
+    font-size: 14px;
+    color: var(--sub);
+  }
+
+  footer {
+    margin-top: clamp(48px, 10vw, 96px);
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--dim);
+  }
+  footer a { color: var(--dim); }
+</style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <h1>의지박약</h1>
-      <p>작심삼일도 백 번 하면 일 년이 됩니다.</p>
-      <nav>
-        <a href="./">홈</a>
-        <a href="https://github.com/uijibakyak">GitHub</a>
-      </nav>
+      <p class="tagline">작심삼일도 백 번 하면 일 년이 됩니다.</p>
     </header>
 
     <main>
-      <article>
-        <h2><a href="#">첫 번째 테스트 글</a></h2>
-        <time datetime="2026-09-17">2026년 9월 17일</time>
-        <p>깃허브 페이지가 정상적으로 배포되는지 확인하기 위한 테스트 글입니다.
-           이 페이지가 보인다면 배포가 성공한 것입니다.</p>
-      </article>
-
-      <article>
-        <h2><a href="#">두 번째 테스트 글</a></h2>
-        <time datetime="2026-09-17">2026년 9월 17일</time>
-        <p>글 목록이 어떻게 쌓이는지 확인하기 위한 두 번째 항목입니다.</p>
-      </article>
+      <div class="section-label" id="services">서비스</div>
+      <ul aria-labelledby="services">
+        <li>
+          <a class="entry" href="./clock.html">
+            <div class="entry-head">
+              <span class="entry-name">시계</span>
+              <span class="entry-meta">2026.09</span>
+            </div>
+            <p class="entry-desc">다크 · 화이트 테마와 밀리초 단위 표시를 지원하는 디지털 시계.</p>
+          </a>
+        </li>
+      </ul>
     </main>
 
     <footer>
-      © 2026 uijibakyak
+      © 2026 uijibakyak · <a href="https://github.com/uijibakyak">GitHub</a>
     </footer>
   </div>
 </body>

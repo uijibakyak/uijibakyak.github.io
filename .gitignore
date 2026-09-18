@@ -1,0 +1,19 @@
+# JetBrains IDE (프로젝트별 사용자 설정)
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+._*
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# 편집기 임시 파일
+*.swp
+*.swo
+*~
