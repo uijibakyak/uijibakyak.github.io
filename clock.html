@@ -401,23 +401,95 @@
     if (visible) el.pledge.textContent = text;
   }
 
+  // 화면 꺼짐 방지는 항상 걸어둔다. 경로가 두 개다.
+  //
+  //  1) Screen Wake Lock API - 안드로이드 크롬, 데스크톱 크롬/엣지/사파리
+  //  2) 무음 영상 재생       - iOS / iPadOS. 이 플랫폼은 모든 브라우저가 WebKit 이라
+  //                            크롬으로 접속해도 1번이 없다. 재생 중인 영상이 있으면
+  //                            시스템이 화면을 끄지 않는 성질을 이용한다
+  //
+  // img/keepawake.mp4 는 NoSleep.js(MIT, Rich Tibbett)에 내장된 무음 영상이다
   var wakeLock = null;
+  var keepVideo = null;
+  var gestureArmed = false;
 
-  // 화면 꺼짐 방지는 항상 걸어둔다. 미지원 · 비보안 컨텍스트 · 배터리 부족은 조용히 넘긴다
+  function playKeepVideo() {
+    if (!keepVideo) return;
+    var played = keepVideo.play();
+    if (played && played.catch) played.catch(function () { armGesture(); });
+  }
+
+  // 자동재생이 막힌 환경에서는 첫 사용자 동작에 붙여 다시 시도한다
+  function armGesture() {
+    if (gestureArmed) return;
+    gestureArmed = true;
+
+    var fire = function () {
+      document.removeEventListener('touchend', fire);
+      document.removeEventListener('click', fire);
+      document.removeEventListener('keydown', fire);
+      gestureArmed = false;
+      playKeepVideo();
+    };
+
+    document.addEventListener('touchend', fire);
+    document.addEventListener('click', fire);
+    document.addEventListener('keydown', fire);
+  }
+
+  function startKeepVideo() {
+    if (keepVideo) {
+      if (keepVideo.paused) playKeepVideo();
+      return;
+    }
+
+    var v = document.createElement('video');
+    v.muted = true;
+    v.loop = true;
+    v.playsInline = true;
+    v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    v.setAttribute('aria-hidden', 'true');
+    v.src = './img/keepawake.mp4';
+    // display:none 이나 visibility:hidden 은 재생이 막힐 수 있어 1px 로 남긴다
+    v.style.cssText = 'position: fixed; left: 0; top: 0; width: 1px; height: 1px;' +
+                      ' opacity: 0; pointer-events: none;';
+    document.body.appendChild(v);
+    keepVideo = v;
+    playKeepVideo();
+  }
+
   function acquireWake() {
-    if (!('wakeLock' in navigator) || wakeLock) return;
-    // 숨겨진 탭에서는 요청이 거부된다. visibilitychange 에서 다시 시도한다
+    if (wakeLock) return;
+    // 숨겨진 탭에서는 요청이 거부된다. 아래 재시도 경로들이 다시 집어준다
     if (document.visibilityState !== 'visible') return;
 
     navigator.wakeLock.request('screen').then(function (sentinel) {
       wakeLock = sentinel;
-      sentinel.addEventListener('release', function () { wakeLock = null; });
-    }).catch(function () {});
+      sentinel.addEventListener('release', function () {
+        wakeLock = null;
+        // 보이는 중에 풀렸다면(전체화면 전환, OS 정책 등) 다시 건다.
+        // 곧바로 재요청하면 실패가 반복될 때 루프가 되므로 한 박자 둔다
+        setTimeout(ensureAwake, 1000);
+      });
+    }).catch(function () {
+      // API 는 있지만 요청이 계속 거부되는 환경이면 영상 쪽으로 넘어간다
+      startKeepVideo();
+    });
   }
 
-  // 탭을 벗어나면 잠금이 자동으로 풀리고, 돌아와도 복구되지 않는다. 직접 다시 건다
+  function ensureAwake() {
+    if ('wakeLock' in navigator) acquireWake();
+    else startKeepVideo();
+  }
+
+  // 풀리는 경로 중 일부는 아무 이벤트도 남기지 않는다. 몇 시간 켜두는 화면이라
+  // 주기적으로 확인해 비어 있으면 다시 건다. 이미 잡고 있으면 즉시 빠져나온다
+  window.setInterval(ensureAwake, 30000);
+
+  // 탭을 벗어나면 잠금이 풀리고 영상도 멈춘다. 돌아왔을 때 직접 되살린다
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') acquireWake();
+    if (document.visibilityState === 'visible') ensureAwake();
   });
 
   // 전체화면 상태의 원천은 항상 브라우저다. ESC 로 빠져나가면 내 플래그는 틀어지므로 두지 않는다
@@ -481,8 +553,14 @@
   });
 
   // ESC 나 F11 로 빠져나가는 경우까지 여기서 잡힌다
-  document.addEventListener('fullscreenchange', syncChrome);
-  document.addEventListener('webkitfullscreenchange', syncChrome);
+  function onFullscreenChange() {
+    syncChrome();
+    // 전체화면 전환 과정에서 잠금이 풀리는 브라우저가 있다
+    ensureAwake();
+  }
+
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 
   el.pledgeInput.addEventListener('input', function () {
     state.pledge = el.pledgeInput.value.slice(0, PLEDGE_MAX);
@@ -497,7 +575,7 @@
 
   loadSettings();
   syncChrome();
-  acquireWake();
+  ensureAwake();
   window.requestAnimationFrame(tick);
 })();
 </script>
