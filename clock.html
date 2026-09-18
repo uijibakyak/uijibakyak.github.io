@@ -170,6 +170,20 @@
   }
   .pledge[hidden] { display: none; }
 
+  /* 배포 확인용. 값은 document.lastModified 라서 따로 올릴 버전 숫자가 없다 */
+  .build {
+    position: absolute;
+    right: clamp(16px, 3vw, 40px);
+    bottom: clamp(16px, 3vw, 40px);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .build[hidden] { display: none; }
+  :fullscreen .build { display: none; }
+  :-webkit-full-screen .build { display: none; }
+
   .head {
     display: flex;
     flex-direction: column;
@@ -309,6 +323,8 @@
 
       <p class="pledge" id="pledge" hidden></p>
     </div>
+
+    <div class="build" id="build" hidden></div>
   </main>
 
 <script>
@@ -326,7 +342,8 @@
     ms: document.getElementById('ms'),
     pledgeInput: document.getElementById('pledge-input'),
     pledge: document.getElementById('pledge'),
-    fullGroup: document.getElementById('full-group')
+    fullGroup: document.getElementById('full-group'),
+    build: document.getElementById('build')
   };
 
   var PLEDGE_MAX = 60;
@@ -517,6 +534,16 @@
     return String(n).padStart(w, '0');
   }
 
+  // 배포 시각. Pages 가 Last-Modified 를 보내주므로 수동 버저닝이 필요 없다
+  function showBuild() {
+    var d = new Date(document.lastModified);
+    if (isNaN(d.getTime())) return;
+    el.build.textContent =
+      d.getFullYear() + '-' + pad(d.getMonth() + 1, 2) + '-' + pad(d.getDate(), 2) +
+      ' ' + pad(d.getHours(), 2) + ':' + pad(d.getMinutes(), 2);
+    el.build.hidden = false;
+  }
+
   function tick() {
     var d = new Date();
     var hh = pad(d.getHours(), 2);
@@ -575,6 +602,7 @@
 
   loadSettings();
   syncChrome();
+  showBuild();
   ensureAwake();
   window.requestAnimationFrame(tick);
 })();

@@ -140,6 +140,18 @@
     color: var(--dim);
   }
   footer a { color: var(--dim); }
+
+  /* 배포 확인용. 값은 document.lastModified 라서 따로 올릴 버전 숫자가 없다 */
+  .build {
+    position: fixed;
+    right: clamp(16px, 3vw, 32px);
+    bottom: clamp(16px, 3vw, 32px);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .build[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -169,5 +181,20 @@
       © 2026 uijibakyak · <a href="https://github.com/uijibakyak">GitHub</a>
     </footer>
   </div>
+
+  <div class="build" id="build" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  var d = new Date(document.lastModified);
+  if (isNaN(d.getTime())) return;
+  var p = function (n) { return String(n).padStart(2, '0'); };
+  var el = document.getElementById('build');
+  el.textContent = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+                   ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  el.hidden = false;
+})();
+</script>
 </body>
 </html>
