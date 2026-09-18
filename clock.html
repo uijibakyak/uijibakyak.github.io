@@ -401,6 +401,25 @@
     if (visible) el.pledge.textContent = text;
   }
 
+  var wakeLock = null;
+
+  // 화면 꺼짐 방지는 항상 걸어둔다. 미지원 · 비보안 컨텍스트 · 배터리 부족은 조용히 넘긴다
+  function acquireWake() {
+    if (!('wakeLock' in navigator) || wakeLock) return;
+    // 숨겨진 탭에서는 요청이 거부된다. visibilitychange 에서 다시 시도한다
+    if (document.visibilityState !== 'visible') return;
+
+    navigator.wakeLock.request('screen').then(function (sentinel) {
+      wakeLock = sentinel;
+      sentinel.addEventListener('release', function () { wakeLock = null; });
+    }).catch(function () {});
+  }
+
+  // 탭을 벗어나면 잠금이 자동으로 풀리고, 돌아와도 복구되지 않는다. 직접 다시 건다
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') acquireWake();
+  });
+
   // 전체화면 상태의 원천은 항상 브라우저다. ESC 로 빠져나가면 내 플래그는 틀어지므로 두지 않는다
   function fullscreenElement() {
     return document.fullscreenElement || document.webkitFullscreenElement || null;
@@ -478,6 +497,7 @@
 
   loadSettings();
   syncChrome();
+  acquireWake();
   window.requestAnimationFrame(tick);
 })();
 </script>
