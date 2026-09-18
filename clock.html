@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Monolith 시계</title>
+<title>시계 · 의지박약</title>
+<link rel="icon" type="image/png" href="./img/icon-64.png">
+<link rel="apple-touch-icon" href="./img/icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&display=swap">
@@ -97,6 +99,7 @@
   .panel[hidden] { display: none; }
 
   .group { display: flex; flex-direction: column; gap: 12px; }
+  .group[hidden] { display: none; }
 
   .group-label {
     font-size: 11px;
@@ -219,6 +222,28 @@
     font-feature-settings: 'tnum' 1;
   }
   .ms[hidden] { display: none; }
+
+  /* 전체화면 뒤 배경. ::backdrop 은 커스텀 프로퍼티 상속이 브라우저마다 달라 값을 직접 쓴다 */
+  html[data-theme="dark"]::backdrop { background: #0B0B0B; }
+  html[data-theme="light"]::backdrop { background: #FAFAF8; }
+
+  :fullscreen .date { font-size: clamp(11px, 1.7vw, 24px); }
+  :fullscreen .rule { width: 96px; }
+  :fullscreen .time { font-size: clamp(56px, 13vw, 300px); }
+  :fullscreen .ms { font-size: clamp(24px, 5.4vw, 124px); }
+  :fullscreen .pledge {
+    font-size: clamp(18px, 2.8vw, 60px);
+    max-width: min(1100px, calc(100vw - 96px));
+  }
+
+  :-webkit-full-screen .date { font-size: clamp(11px, 1.7vw, 24px); }
+  :-webkit-full-screen .rule { width: 96px; }
+  :-webkit-full-screen .time { font-size: clamp(56px, 13vw, 300px); }
+  :-webkit-full-screen .ms { font-size: clamp(24px, 5.4vw, 124px); }
+  :-webkit-full-screen .pledge {
+    font-size: clamp(18px, 2.8vw, 60px);
+    max-width: min(1100px, calc(100vw - 96px));
+  }
 </style>
 </head>
 <body>
@@ -251,6 +276,13 @@
           <button type="button" class="chip" data-format-set="full" aria-pressed="true">HH:mm:ss.SSS</button>
           <button type="button" class="chip" data-format-set="seconds" aria-pressed="false">HH:mm:ss</button>
           <button type="button" class="chip" data-format-set="minutes" aria-pressed="false">HH:mm</button>
+        </div>
+      </div>
+      <div class="group" id="full-group">
+        <div class="group-label" id="full-label">전체화면</div>
+        <div class="row" role="group" aria-labelledby="full-label">
+          <button type="button" class="chip" data-full-set="on" aria-pressed="false">켜기</button>
+          <button type="button" class="chip" data-full-set="off" aria-pressed="true">끄기</button>
         </div>
       </div>
       <div class="group">
@@ -293,7 +325,8 @@
     time: document.getElementById('time'),
     ms: document.getElementById('ms'),
     pledgeInput: document.getElementById('pledge-input'),
-    pledge: document.getElementById('pledge')
+    pledge: document.getElementById('pledge'),
+    fullGroup: document.getElementById('full-group')
   };
 
   var PLEDGE_MAX = 60;
@@ -349,6 +382,11 @@
       b.setAttribute('aria-pressed', b.dataset.formatSet === state.format ? 'true' : 'false');
     });
 
+    var wantedFull = fullscreenElement() ? 'on' : 'off';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-full-set]'), function (b) {
+      b.setAttribute('aria-pressed', b.dataset.fullSet === wantedFull ? 'true' : 'false');
+    });
+
     var wanted = state.pledgeShown ? 'show' : 'hide';
     Array.prototype.forEach.call(document.querySelectorAll('[data-pledge-set]'), function (b) {
       b.setAttribute('aria-pressed', b.dataset.pledgeSet === wanted ? 'true' : 'false');
@@ -361,6 +399,27 @@
     var visible = state.pledgeShown && text !== '';
     el.pledge.hidden = !visible;
     if (visible) el.pledge.textContent = text;
+  }
+
+  // 전체화면 상태의 원천은 항상 브라우저다. ESC 로 빠져나가면 내 플래그는 틀어지므로 두지 않는다
+  function fullscreenElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+
+  function enterFullscreen() {
+    var root = document.documentElement;
+    var fn = root.requestFullscreen || root.webkitRequestFullscreen;
+    if (!fn) return;
+    var result = fn.call(root);
+    // 구형 사파리는 프로미스를 돌려주지 않는다
+    if (result && result.catch) result.catch(function () { syncChrome(); });
+  }
+
+  function exitFullscreen() {
+    var fn = document.exitFullscreen || document.webkitExitFullscreen;
+    if (!fn) return;
+    var result = fn.call(document);
+    if (result && result.catch) result.catch(function () {});
   }
 
   function pad(n, w) {
@@ -389,20 +448,33 @@
   });
 
   el.panel.addEventListener('click', function (event) {
-    var button = event.target.closest('[data-theme-set], [data-format-set], [data-pledge-set]');
+    var button = event.target.closest('[data-theme-set], [data-format-set], [data-pledge-set], [data-full-set]');
     if (!button) return;
     if (button.dataset.themeSet) state.theme = button.dataset.themeSet;
     if (button.dataset.formatSet) state.format = button.dataset.formatSet;
     if (button.dataset.pledgeSet) state.pledgeShown = button.dataset.pledgeSet === 'show';
+    if (button.dataset.fullSet) {
+      if (button.dataset.fullSet === 'on') enterFullscreen();
+      else exitFullscreen();
+    }
     saveSettings();
     syncChrome();
   });
+
+  // ESC 나 F11 로 빠져나가는 경우까지 여기서 잡힌다
+  document.addEventListener('fullscreenchange', syncChrome);
+  document.addEventListener('webkitfullscreenchange', syncChrome);
 
   el.pledgeInput.addEventListener('input', function () {
     state.pledge = el.pledgeInput.value.slice(0, PLEDGE_MAX);
     saveSettings();
     syncChrome();
   });
+
+  var root = document.documentElement;
+  if (!root.requestFullscreen && !root.webkitRequestFullscreen) {
+    el.fullGroup.hidden = true;
+  }
 
   loadSettings();
   syncChrome();
